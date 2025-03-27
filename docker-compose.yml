@@ -1,0 +1,57 @@
+services:
+  selenium-hub:
+    image: selenium/hub:latest
+    container_name: selenium-hub
+    ports:
+      - "4444:4444"
+
+  chrome:
+    image: selenium/node-chrome:latest
+    container_name: chrome
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+      - SE_NODE_MAX_SESSIONS=5
+      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
+      - SE_NODE_SESSION_TIMEOUT=300
+    volumes:
+      - ./data:/app/data:rw
+      - /dev/shm:/dev/shm
+    ports:
+      - "4445:5555"
+      - "4442:4442"
+      - "4443:4443"
+
+  chrome-video:
+    image: selenium/video:ffmpeg:latest
+    container_name: chrome-video
+    depends_on:
+      - chrome
+    volumes:
+      - ./video:/videos
+    environment:
+      - DISPLAY_CONTAINER_NAME=chrome
+      - FILENAME=video.mp4
+
+  fastapi-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi-app
+    command: "uvicorn main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - selenium-hub
+      - chrome
+    volumes:
+      - ./data:/app/data:rw
+    environment:
+      - PYTHONUNBUFFERED=1
+
+volumes:
+  data:
+    driver: local
