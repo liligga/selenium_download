@@ -25,16 +25,6 @@ services:
       - "4442:4442"
       - "4443:4443"
 
-  chrome-video:
-    image: selenium/video:ffmpeg:latest
-    container_name: chrome-video
-    depends_on:
-      - chrome
-    volumes:
-      - ./video:/videos
-    environment:
-      - DISPLAY_CONTAINER_NAME=chrome
-      - FILENAME=video.mp4
 
   fastapi-app:
     build:
@@ -49,9 +39,17 @@ services:
       - chrome
     volumes:
       - ./data:/app/data:rw
+      - ./screenshots:/app/screenshots:rw
     environment:
       - PYTHONUNBUFFERED=1
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./app
+          target: /app
 
 volumes:
   data:
+    driver: local
+  screenshots:
     driver: local
